@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>무지개 아이스크림 가게 - 배달 놀이</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Playful & Cute Font (Jua) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #fff3f8;
+            user-select: none;
+        }
+        /* Custom scrollbar for ice cream feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ffe3f0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffb6c1;
+            border-radius: 9999px;
+        }
+        /* Bouncy animations */
+        .bounce-hover:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .active-tab {
+            background-color: #ff69b4 !important;
+            color: white !important;
+            box-shadow: 0 4px 14px rgba(255, 105, 180, 0.4);
+        }
+        /* Sweet cloud animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .floating-cloud {
+            animation: float 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col pb-8">
+
+    <!-- TOP NAVIGATION & STATUS BAR -->
+    <header class="bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-sm border-b-4 border-pink-200 px-4 py-3">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-2">
+                <span class="text-3xl">🌈</span>
+                <div>
+                    <h1 class="text-2xl font-bold text-pink-500 tracking-wider">무지개 아이스크림 가게</h1>
+                    <p class="text-xs text-slate-400 font-sans">아이스크림 가게 배달 놀이 딜리버리 앱</p>
+                </div>
+            </div>
+
+            <!-- Role Selector & Status Coins -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <!-- Sound Toggle -->
+                <button id="soundBtn" onclick="toggleSound()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-full transition text-sm flex items-center gap-1">
+                    <i id="soundIcon" class="fas fa-volume-up text-pink-500"></i>
+                    <span>소리 켬</span>
+                </button>
+
+                <!-- Coin Counter -->
+                <div class="flex items-center gap-1.5 bg-amber-100 border-2 border-amber-300 text-amber-700 font-bold px-3 py-1.5 rounded-full shadow-inner">
+                    <span class="text-lg">🪙</span>
+                    <span id="coinCount">100</span>
+                    <span class="text-xs">코인</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Role Switching Tabs -->
+        <div class="max-w-md mx-auto mt-3 grid grid-cols-2 gap-2 bg-pink-100 p-1 rounded-2xl">
+            <button id="customerTab" onclick="switchRole('customer')" class="active-tab py-2.5 rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2">
+                <span>🛍️</span> 손님 주문하기
+            </button>
+            <button id="ownerTab" onclick="switchRole('owner')" class="text-pink-600 hover:bg-white/50 py-2.5 rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2 relative">
+                <span>👩‍🍳</span> 사장님 주방
+                <!-- Notification Badge -->
+                <span id="orderBadge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs w-5.5 h-5.5 flex items-center justify-center rounded-full border-2 border-white animate-bounce">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 mt-6">
+        
+        <!-- Toast Notification Container -->
+        <div id="toastContainer" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+        <!-- ============================================== -->
+        <!-- 1. CUSTOMER MODE (손님 주문 화면) -->
+        <!-- ============================================== -->
+        <section id="customerView" class="space-y-6 block">
+            <!-- Ice Cream Builder Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                <!-- Left: Interactive Ice Cream Realtime Preview -->
+                <div class="md:col-span-5 flex flex-col items-center justify-center bg-white p-6 rounded-3xl shadow-md border-4 border-pink-100 relative overflow-hidden min-h-[350px]">
+                    <div class="absolute top-2 left-2 text-xs bg-pink-100 text-pink-600 px-3 py-1 rounded-full">실시간 미리보기 🍦</div>
+                    
+                    <!-- Sound Hint Cloud -->
+                    <div class="absolute right-4 top-4 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[10px] text-slate-400 floating-cloud hidden md:block">
+                        옵션을 클릭하면 소리가 나요! ✨
+                    </div>
+
+                    <!-- Dynamic SVG Ice Cream Container -->
+                    <div id="iceCreamPreview" class="w-full max-w-[200px] h-[250px] flex items-center justify-center">
+                        <!-- SVG dynamically populated by JS -->
+                    </div>
+
+                    <!-- Order Summary Bubble -->
+                    <div class="mt-4 text-center">
+                        <p id="summaryText" class="text-sm text-slate-500 font-sans">원하는 조합을 아래에서 클릭해보세요!</p>
+                        <p id="summaryFlavors" class="text-base text-pink-600 font-bold mt-1"></p>
+                    </div>
+                </div>
+
+                <!-- Right: Customizer Control Panel -->
+                <div class="md:col-span-7 bg-white p-6 rounded-3xl shadow-md border-4 border-pink-100 space-y-6">
+                    <h3 class="text-xl font-bold text-slate-700 flex items-center gap-2 border-b-2 border-pink-50 pb-2">
+                        <span class="text-pink-500">🎨</span> 나만의 아이스크림 만들기
+                    </h3>
+
+                    <!-- STEP 1: Choose Base Container (Pink Cup & Wooden Bar) -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-slate-500">1단계: 담을 그릇 고르기</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="setBase('cup')" id="base-cup" class="base-btn border-2 border-pink-400 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition bg-pink-50/50">
+                                <span class="text-3xl">🍧</span>
+                                <span class="text-sm font-bold">핑크컵</span>
+                            </button>
+                            <button onclick="setBase('bar')" id="base-bar" class="base-btn border-2 border-slate-200 hover:border-pink-300 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition bg-slate-50">
+                                <span class="text-3xl">🍭</span>
+                                <span class="text-sm font-bold">달콤바 (막대)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: Dynamic Ice Cream Flavors -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label id="flavorStepTitle" class="block text-sm font-semibold text-slate-500">2단계: 아이스크림 맛</label>
+                            <button onclick="clearScoops()" class="text-xs text-red-400 hover:text-red-500 hover:underline">
+                                <i class="fas fa-trash-alt mr-1"></i>다시 고르기
+                            </button>
+                        </div>
+                        
+                        <!-- Flavor Buttons Container (Dynamically swapped by JS based on Base selection) -->
+                        <div id="flavorButtonsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: Choose Toppings -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-slate-500">3단계: 맛있는 토핑 얹기 (중복 가능)</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button onclick="toggleTopping('cherry')" id="top-cherry" class="topping-btn border border-slate-200 p-2 rounded-xl flex items-center justify-center gap-1.5 hover:bg-red-50 active:scale-95 transition">
+                                <span>🍒</span>
+                                <span class="text-xs font-bold">체리</span>
+                            </button>
+                            <button onclick="toggleTopping('sprinkle')" id="top-sprinkle" class="topping-btn border border-slate-200 p-2 rounded-xl flex items-center justify-center gap-1.5 hover:bg-amber-50 active:scale-95 transition">
+                                <span>✨</span>
+                                <span class="text-xs font-bold">가루 가루</span>
+                            </button>
+                            <button onclick="toggleTopping('syrup')" id="top-syrup" class="topping-btn border border-slate-200 p-2 rounded-xl flex items-center justify-center gap-1.5 hover:bg-amber-100 hover:border-amber-600 active:scale-95 transition">
+                                <span>🍫</span>
+                                <span class="text-xs font-bold">초코시럽</span>
+                            </button>
+                            <button onclick="toggleTopping('cookie')" id="top-cookie" class="topping-btn border border-slate-200 p-2 rounded-xl flex items-center justify-center gap-1.5 hover:bg-slate-100 active:scale-95 transition">
+                                <span>🍪</span>
+                                <span class="text-xs font-bold">쿠키칩</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: Delivery Form & Submit -->
+                    <div class="bg-pink-50/50 p-4 rounded-2xl border-2 border-pink-100 space-y-3">
+                        <h4 class="font-bold text-pink-600 text-sm flex items-center gap-1.5">
+                            <i class="fas fa-motorcycle"></i> 배송 정보를 적어주세요!
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">우리집 이름 (또는 방 이름)</label>
+                                <input type="text" id="custName" value="안방 소파" class="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 font-sans" placeholder="예: 공주방, 거실 소파">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">손님 이름</label>
+                                <input type="text" id="custAlias" value="귀여운 다람쥐" class="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 font-sans" placeholder="예: 지우 공주님, 아빠">
+                            </div>
+                        </div>
+                        <button onclick="submitOrder()" class="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:from-pink-600 hover:to-rose-500 text-white font-bold py-3 px-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2 text-lg mt-2">
+                            <span>🚀</span> 맛있는 아이스크림 배달 주문하기!
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- REAL-TIME TRACKING SECTION FOR CUSTOMER -->
+            <div class="bg-white p-6 rounded-3xl shadow-md border-4 border-pink-100 space-y-4">
+                <h3 class="text-xl font-bold text-slate-700 flex items-center gap-2 border-b-2 border-slate-100 pb-2">
+                    <span class="text-cyan-500">🛵</span> 내가 주문한 배달 현황판
+                </h3>
+
+                <div id="trackingList" class="space-y-4">
+                    <div class="text-center py-8 text-slate-400 font-sans">
+                        <span class="text-4xl block mb-2">🍽️</span>
+                        아직 주문한 아이스크림이 없습니다.<br>위에서 나만의 아이스크림을 만들어 주문해보세요!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- 2. OWNER/KITCHEN MODE (사장님 조립 주방 화면) -->
+        <!-- ============================================== -->
+        <section id="ownerView" class="space-y-6 hidden">
+            <!-- Owner Control Board -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                <!-- Left: Incoming Order Queue -->
+                <div class="md:col-span-5 bg-white p-5 rounded-3xl shadow-md border-4 border-indigo-100 flex flex-col min-h-[400px]">
+                    <h3 class="text-xl font-bold text-slate-700 flex items-center justify-between border-b-2 border-slate-100 pb-2 mb-3">
+                        <span class="flex items-center gap-2">
+                            <span class="text-indigo-500">📥</span> 대기중인 주문서
+                        </span>
+                        <span id="orderQueueCount" class="bg-indigo-500 text-white text-sm px-2.5 py-0.5 rounded-full font-sans">0개</span>
+                    </h3>
+
+                    <!-- Order Queue Container -->
+                    <div id="orderQueue" class="space-y-3 overflow-y-auto flex-grow max-h-[350px] pr-1 font-sans">
+                        <div class="text-center py-12 text-slate-400">
+                            <span class="text-4xl block mb-2">💤</span>
+                            새로 들어온 주문이 없습니다.<br>손님 모드에서 먼저 주문해 보세요!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Assembly Counter (Making the Ice cream) -->
+                <div class="md:col-span-7 bg-white p-6 rounded-3xl shadow-md border-4 border-indigo-100 space-y-5 flex flex-col">
+                    <h3 class="text-xl font-bold text-slate-700 flex items-center gap-2 border-b-2 border-indigo-50 pb-2">
+                        <span class="text-amber-500">🍳</span> 아이스크림 제작 매대
+                    </h3>
+
+                    <div id="noActiveAssembly" class="flex-grow flex flex-col items-center justify-center text-center py-12 text-slate-400">
+                        <span class="text-5xl block mb-3">🧑‍🍳</span>
+                        <p class="font-bold text-slate-600">제작할 주문서를 왼쪽에서 골라주세요!</p>
+                        <p class="text-xs mt-1 font-sans">선택한 주문서의 레시피대로 맛있게 만들어 배달할 수 있습니다.</p>
+                    </div>
+
+                    <!-- ACTIVE ASSEMBLY TABLE -->
+                    <div id="activeAssemblyArea" class="hidden flex-grow space-y-4">
+                        <!-- Recipe Card -->
+                        <div class="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl flex items-start gap-3 relative">
+                            <span class="text-3xl">📝</span>
+                            <div class="font-sans">
+                                <span class="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded font-bold">레시피 확인</span>
+                                <div class="font-bold text-slate-700 text-base mt-1" id="recipeTargetDesc"></div>
+                                <div class="text-xs text-indigo-700 mt-0.5 font-bold" id="recipeTargetDetails"></div>
+                            </div>
+                        </div>
+
+                        <!-- Side by Side Workspace -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Left Side: Creator Realtime Canvas -->
+                            <div class="border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center bg-slate-50 min-h-[220px]">
+                                <span class="text-xs text-slate-400 mb-2 font-sans font-bold">나의 조립 상태</span>
+                                <div id="ownerAssemblyPreview" class="w-36 h-36 flex items-center justify-center"></div>
+                                <div id="ownerAssemblyStatus" class="text-xs font-bold text-slate-500 mt-2 font-sans text-center">그릇을 선택해주세요</div>
+                            </div>
+
+                            <!-- Right Side: Kitchen Chef Tools -->
+                            <div class="space-y-4">
+                                <!-- Tool 1: Base -->
+                                <div>
+                                    <span class="text-xs text-slate-500 font-bold block mb-1">1. 그릇 담기</span>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button onclick="chefSetBase('cup')" class="chef-base-btn border border-slate-300 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-indigo-50 active:scale-95 transition">핑크컵</button>
+                                        <button onclick="chefSetBase('bar')" class="chef-base-btn border border-slate-300 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-indigo-50 active:scale-95 transition">달콤바</button>
+                                    </div>
+                                </div>
+
+                                <!-- Tool 2: Scoops / Bars -->
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span id="chefFlavorTitle" class="text-xs text-slate-500 font-bold block">2. 맛 선택하기</span>
+                                        <button onclick="chefClearScoops()" class="text-[10px] text-red-500 hover:underline">비우기</button>
+                                    </div>
+                                    <!-- Dynamic Chef flavor buttons based on current active recipe -->
+                                    <div id="chefFlavorGrid" class="grid grid-cols-2 gap-1.5">
+                                        <!-- Loaded Dynamically via JS -->
+                                    </div>
+                                </div>
+
+                                <!-- Tool 3: Toppings -->
+                                <div>
+                                    <span class="text-xs text-slate-500 font-bold block mb-1">3. 토핑 올리기</span>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <button id="chef-top-cherry" onclick="chefToggleTopping('cherry')" class="chef-top-btn border border-slate-300 py-1 rounded-lg text-[10px] font-bold bg-white active:scale-95 transition">🍒 체리</button>
+                                        <button id="chef-top-sprinkle" onclick="chefToggleTopping('sprinkle')" class="chef-top-btn border border-slate-300 py-1 rounded-lg text-[10px] font-bold bg-white active:scale-95 transition">✨ 가루</button>
+                                        <button id="chef-top-syrup" onclick="chefToggleTopping('syrup')" class="chef-top-btn border border-slate-300 py-1 rounded-lg text-[10px] font-bold bg-white active:scale-95 transition">🍫 시럽</button>
+                                        <button id="chef-top-cookie" onclick="chefToggleTopping('cookie')" class="chef-top-btn border border-slate-300 py-1 rounded-lg text-[10px] font-bold bg-white active:scale-95 transition">🍪 쿠키</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Complete and Deliver Button -->
+                        <div class="pt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-2">
+                            <button onclick="abandonChefOrder()" class="px-4 py-2 text-slate-400 hover:text-slate-600 font-sans text-sm font-bold border border-slate-200 hover:bg-slate-50 rounded-xl transition">
+                                만들기 취소
+                            </button>
+                            <button id="shipOrderBtn" onclick="shipActiveOrder()" class="flex-grow bg-slate-200 text-slate-400 cursor-not-allowed font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-base transition duration-300">
+                                <span>📦</span> 주문 레시피대로 맛있게 만들어주세요!
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- MODAL: KIDS DRAWING BOOK (꼬마 예술가 그림판 모달) -->
+    <!-- ============================================== -->
+    <div id="drawingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl border-4 border-pink-300 overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="bg-pink-100 p-4 border-b-2 border-pink-200 flex justify-between items-center flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🎨</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-pink-600">꼬마 예술가의 스케치북</h3>
+                        <p class="text-[10px] text-slate-500 font-sans">손가락으로 그리거나 내 그림 사진을 올려보세요!</p>
+                    </div>
+                </div>
+                <button onclick="closeDrawingModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            
+            <!-- Drawing Area -->
+            <div class="p-5 flex-grow overflow-y-auto space-y-4 flex flex-col items-center">
+                <!-- Canvas Container -->
+                <div class="relative bg-pink-50/50 border-4 border-dashed border-pink-200 rounded-2xl overflow-hidden w-[260px] h-[260px] shadow-inner flex items-center justify-center">
+                    <canvas id="kidsCanvas" width="250" height="250" class="bg-white rounded-lg cursor-crosshair touch-none"></canvas>
+                </div>
+
+                <!-- Palette Tools -->
+                <div class="w-full">
+                    <span class="text-xs text-slate-500 font-bold block mb-2 text-center">🖌️ 원하는 색깔 물감을 골라요!</span>
+                    <div class="grid grid-cols-6 gap-2 justify-center">
+                        <button onclick="changeBrushColor('#FF1744')" class="color-dot w-9 h-9 rounded-full bg-[#FF1744] border-2 border-white ring-2 ring-transparent transition hover:scale-110 active:scale-95" title="딸기빨강"></button>
+                        <button onclick="changeBrushColor('#FFEB3B')" class="color-dot w-9 h-9 rounded-full bg-[#FFEB3B] border-2 border-white ring-2 ring-transparent transition hover:scale-110 active:scale-95" title="바나나노랑"></button>
+                        <button onclick="changeBrushColor('#4CAF50')" class="color-dot w-9 h-9 rounded-full bg-[#4CAF50] border-2 border-white ring-2 ring-transparent transition hover:scale-110 active:scale-95" title="메론초록"></button>
+                        <button onclick="changeBrushColor('#2196F3')" class="color-dot w-9 h-9 rounded-full bg-[#2196F3] border-2 border-white ring-2 ring-transparent transition hover:scale-110 active:scale-95" title="하늘블루"></button>
+                        <button onclick="changeBrushColor('#9C27B0')" class="color-dot w-9 h-9 rounded-full bg-[#9C27B0] border-2 border-white ring-2 ring-transparent transition hover:scale-110 active:scale-95" title="포도보라"></button>
+                        <button onclick="changeBrushColor('#4E342E')" class="color-dot w-9 h-9 rounded-full bg-[#4E342E] border-2 border-white ring-2 ring-transparent transition hover:scale-110 active:scale-95" title="초코브라운"></button>
+                    </div>
+                </div>
+
+                <!-- Brush Size & Utility buttons -->
+                <div class="w-full flex justify-between gap-2 items-center text-xs">
+                    <button onclick="clearKidsCanvas()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-xl transition">
+                        🧼 처음부터 다시
+                    </button>
+                    <button onclick="triggerImageUpload()" class="flex-1 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold py-2 rounded-xl transition flex items-center justify-center gap-1">
+                        📸 사진 찍어 올리기
+                    </button>
+                    <!-- Hidden File Input for Image Upload -->
+                    <input type="file" id="imageUploader" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                </div>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 flex-shrink-0">
+                <button onclick="closeDrawingModal()" class="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold rounded-2xl transition">취소</button>
+                <button onclick="saveKidsDrawing()" class="flex-1 py-3 bg-gradient-to-r from-pink-500 to-rose-400 hover:from-pink-600 hover:to-rose-500 text-white font-bold rounded-2xl shadow-md transition-all active:scale-[0.98]">
+                    👍 내 그림으로 결정!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /**************************************************************
+         * SOUND & FX ENGINE (Tone.js wrapper)
+         **************************************************************/
+        let soundEnabled = true;
+        let synth = null;
+        let drumSynth = null;
+
+        // Initialize Tone.js Synths on first user interaction
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 0.5 }
+                }).toDestination();
+                synth.volume.value = -8;
+
+                drumSynth = new Tone.MetalSynth({
+                    frequency: 200,
+                    envelope: { attack: 0.001, decay: 0.05, release: 0.05 },
+                    harmonicity: 5.1,
+                    modulationIndex: 32,
+                    resonance: 4000,
+                    octaves: 1.5
+                }).toDestination();
+                drumSynth.volume.value = -12;
+            }
+        }
+
+        function playSuccessSound() {
+            if (!soundEnabled) return;
+            initAudio();
+            const now = Tone.now();
+            synth.triggerAttackRelease("C5", "8n", now);
+            synth.triggerAttackRelease("E5", "8n", now + 0.12);
+            synth.triggerAttackRelease("G5", "8n", now + 0.24);
+            synth.triggerAttackRelease("C6", "4n", now + 0.36);
+        }
+
+        function playScoopSound() {
+            if (!soundEnabled) return;
+            initAudio();
+            const now = Tone.now();
+            synth.triggerAttackRelease("G4", "16n", now);
+            synth.triggerAttackRelease("C5", "8n", now + 0.05);
+        }
+
+        function playSprinkleSound() {
+            if (!soundEnabled) return;
+            initAudio();
+            const now = Tone.now();
+            drumSynth.triggerAttackRelease("16n", now);
+            setTimeout(() => { if(soundEnabled) drumSynth.triggerAttackRelease("16n"); }, 80);
+            setTimeout(() => { if(soundEnabled) drumSynth.triggerAttackRelease("16n"); }, 160);
+        }
+
+        function playEngineSound() {
+            if (!soundEnabled) return;
+            initAudio();
+            const now = Tone.now();
+            synth.triggerAttackRelease("A3", "16n", now);
+            synth.triggerAttackRelease("C4", "16n", now + 0.1);
+            synth.triggerAttackRelease("E4", "16n", now + 0.2);
+            synth.triggerAttackRelease("G4", "8n", now + 0.3);
+            synth.triggerAttackRelease("C5", "4n", now + 0.4);
+        }
+
+        function playBellSound() {
+            if (!soundEnabled) return;
+            initAudio();
+            const now = Tone.now();
+            synth.triggerAttackRelease("E6", "8n", now);
+            synth.triggerAttackRelease("C6", "4n", now + 0.15);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById("soundIcon");
+            const btnText = document.querySelector("#soundBtn span");
+            if (soundEnabled) {
+                icon.className = "fas fa-volume-up text-pink-500";
+                btnText.innerText = "소리 켬";
+                initAudio();
+                playScoopSound();
+            } else {
+                icon.className = "fas fa-volume-mute text-slate-400";
+                btnText.innerText = "소리 끔";
+            }
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Setting up constant names and colors for new bases and flavors
+         **************************************************************/
+        /**************************************************************
+         * CONSTANTS & GLOBAL STATE
+         **************************************************************/
+        const FLAVOR_COLORS = {
+            // Cup Ice Cream Flavors
+            banana: "#FFF59D",
+            strawberry: "#FF80AB",
+            melon: "#C8E6C9",
+            rainbow: "url(#rainbowGrad)",
+
+            // Bar Ice Cream Flavors
+            pigbar: "#4E342E", // Chocolate Base
+            cloud: "#B3E5FC",  // Soft Blue
+            melonbar: "#A5D6A7", // Light Green Melon
+            titipo: "#2196F3"   // Bright Blue Train
+        };
+
+        const FLAVOR_NAMES = {
+            banana: "바나나",
+            strawberry: "딸기맛",
+            melon: "메론맛",
+            rainbow: "무지개맛",
+
+            pigbar: "하트돼지바",
+            cloud: "구름 아이스크림",
+            melonbar: "메론바",
+            titipo: "띠띠뽀 아이스크림",
+            kids_draw: "🎨 내 스케치북 아이스크림"
+        };
+
+        const BASE_NAMES = {
+            cup: "핑크컵",
+            bar: "달콤바"
+        };
+
+        const TOPPING_NAMES = {
+            cherry: "🍒체리",
+            sprinkle: "✨가루 가루",
+            syrup: "🍫초코시럽",
+            cookie: "🍪쿠키칩"
+        };
+
+        // All flavors organized by their container base
+        const FLAVORS_BY_BASE = {
+            cup: [
+                { id: 'banana', name: '바나나', color: '#FFF59D', class: 'bg-[#FFF59D]' },
+                { id: 'strawberry', name: '딸기맛', color: '#FF80AB', class: 'bg-[#FF80AB]' },
+                { id: 'melon', name: '메론맛', color: '#C8E6C9', class: 'bg-[#C8E6C9]' },
+                { id: 'rainbow', name: '무지개맛', color: 'url(#rainbowGrad)', class: 'bg-gradient-to-r from-pink-300 via-yellow-200 to-blue-300' }
+            ],
+            bar: [
+                { id: 'pigbar', name: '하트돼지바', color: '#4E342E', class: 'bg-[#4E342E] text-white' },
+                { id: 'cloud', name: '구름바', color: '#B3E5FC', class: 'bg-[#B3E5FC] text-slate-700' },
+                { id: 'melonbar', name: '메론바', color: '#A5D6A7', class: 'bg-[#A5D6A7]' },
+                { id: 'titipo', name: '띠띠뽀바', color: '#2196F3', class: 'bg-[#2196F3] text-white' },
+                { id: 'kids_draw', name: '🎨 내그림 올리기', color: '#fbcfe8', class: 'bg-pink-100 text-pink-700 font-bold' }
+            ]
+        };
+
+        // Reactive Application State
+        let state = {
+            role: 'customer',
+            coins: 100,
+            
+            customer: {
+                base: 'cup', // 'cup' | 'bar'
+                scoops: ['strawberry'], // max 3 flavors for cup, exactly 1 for bar
+                toppings: ['cherry'],
+                customDrawingData: null // Base64 image data URL of kid's drawing
+            },
+
+            orders: [],
+
+            chef: {
+                activeOrderId: null,
+                base: null,
+                scoops: [],
+                toppings: []
+            }
+        };
+
+        if (localStorage.getItem('icecream_play_coins')) {
+            state.coins = parseInt(localStorage.getItem('icecream_play_coins')) || 100;
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Dynamic SVG Renderer supporting Kid's Drawing uploads
+         **************************************************************/
+        /**
+         * Render Beautiful Dynamic SVG of customized ice cream.
+         */
+        function makeIceCreamSVG(base, scoops, toppings, customDrawingUrl = null) {
+            let svgStr = `<svg viewBox="0 0 200 240" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">`;
+            
+            svgStr += `
+                <defs>
+                    <linearGradient id="rainbowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ff9a9e" />
+                        <stop offset="50%" stop-color="#fecfef" />
+                        <stop offset="100%" stop-color="#a1c4fd" />
+                    </linearGradient>
+                    <linearGradient id="cupGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#ff758c" />
+                        <stop offset="100%" stop-color="#ff7eb3" />
+                    </linearGradient>
+                    <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#f5cc9d" />
+                        <stop offset="100%" stop-color="#cca06c" />
+                    </linearGradient>
+                </defs>
+            `;
+
+            // Draw Base Layout 1: Wood stick for BAR
+            if (base === 'bar') {
+                svgStr += `
+                    <!-- Ice cream wooden stick -->
+                    <rect x="91" y="155" width="18" height="65" rx="9" fill="url(#woodGrad)" stroke="#b58d5c" stroke-width="1.5" />
+                    <!-- Wood stick texture lines -->
+                    <line x1="97" y1="175" x2="97" y2="205" stroke="#a07548" stroke-width="1" stroke-linecap="round" opacity="0.6" />
+                    <line x1="103" y1="180" x2="103" y2="200" stroke="#a07548" stroke-width="1" stroke-linecap="round" opacity="0.6" />
+                `;
+            }
+
+            // Draw Base Layout 2: Pink Cup (renders under scoops)
+            if (base === 'cup') {
+                svgStr += `
+                    <path d="M 50 140 L 150 140 L 140 210 L 60 210 Z" fill="url(#cupGrad)" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.15))" />
+                    <rect x="44" y="132" width="112" height="10" rx="4" fill="#ff5376" />
+                    <!-- Star decoration -->
+                    <polygon points="100,155 103,163 111,163 105,168 107,176 100,171 93,176 95,168 89,163 97,163" fill="#ffffff" opacity="0.9" />
+                    <text x="100" y="195" font-family="'Jua'" font-size="11" fill="#ffffff" text-anchor="middle" letter-spacing="1">YUMMY</text>
+                `;
+            }
+
+            // Draw Main Flavor Bodies
+            if (scoops.length > 0) {
+                if (base === 'cup') {
+                    // Up to 3 scoops stack vertically in cup
+                    const stackConfig = [
+                        {cy: 125, r: 42}, // Bottom
+                        {cy: 85, r: 38},  // Middle
+                        {cy: 48, r: 32}   // Top
+                    ];
+                    
+                    scoops.forEach((flavor, index) => {
+                        if (index < 3) {
+                            const conf = stackConfig[index];
+                            const color = FLAVOR_COLORS[flavor] || '#fff';
+                            svgStr += `
+                                <circle cx="100" cy="${conf.cy}" r="${conf.r}" fill="${color}" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.15))" />
+                                <circle cx="85" cy="${conf.cy - 10}" r="${conf.r * 0.25}" fill="#ffffff" opacity="0.2" />
+                            `;
+                            // Ice cream melt drips for the bottom scoop
+                            if (index === 0) {
+                                svgStr += `
+                                    <path d="M 64 125 Q 64 138 72 138 Q 80 138 80 125" fill="${color}" />
+                                    <path d="M 120 125 Q 120 138 128 138 Q 136 138 136 125" fill="${color}" />
+                                `;
+                            }
+                        }
+                    });
+                } else if (base === 'bar') {
+                    // Draw specialized character/shaped bars
+                    const flavor = scoops[0]; // Exactly 1 main flavor body for popsicles
+                    const color = FLAVOR_COLORS[flavor] || '#E0E0E0';
+
+                    if (flavor === 'kids_draw') {
+                        // Render uploaded base64 child's drawing directly on the stick!
+                        const imgUrl = customDrawingUrl || state.customer.customDrawingData;
+                        if (imgUrl) {
+                            svgStr += `
+                                <g filter="drop-shadow(0 4px 8px rgba(0,0,0,0.15))">
+                                    <image href="${imgUrl}" x="40" y="30" width="120" height="130" preserveAspectRatio="xMidYMid meet" />
+                                    <!-- Playful dashed stroke outline to indicate custom artwork -->
+                                    <rect x="40" y="30" width="120" height="130" fill="none" rx="12" stroke="#ff7eb3" stroke-width="2.5" stroke-dasharray="6,4" opacity="0.8" />
+                                </g>
+                            `;
+                        } else {
+                            // If selected but not drawn yet
+                            svgStr += `
+                                <rect x="55" y="45" width="90" height="120" rx="20" fill="#fbcfe8" opacity="0.6" stroke="#f472b6" stroke-width="3" stroke-dasharray="6,4" />
+                                <text x="100" y="110" font-family="'Jua'" font-size="11" fill="#ec4899" text-anchor="middle">여기를 클릭해서</text>
+                                <text x="100" y="128" font-family="'Jua'" font-size="11" fill="#ec4899" text-anchor="middle">그림을 그려요! 🎨</text>
+                            `;
+                        }
+                    } else if (flavor === 'pigbar') {
+                        // 하트돼지바: Chocolate shell body with red heart in middle & crunchy outer speckles
+                        svgStr += `
+                            <!-- Main Chocolate Body -->
+                            <rect x="55" y="45" width="90" height="120" rx="45" fill="${color}" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))" />
+                            
+                            <!-- Red Strawberry Heart in Center -->
+                            <path d="M 100 115 C 100 115, 82 95, 82 82 C 82 72, 90 66, 100 76 C 110 66, 118 72, 118 82 C 118 95, 100 115, 100 115 Z" fill="#FF1744" stroke="#FFF" stroke-width="1.5" />
+                            
+                            <!-- Crunch cookies specs on body -->
+                            <circle cx="68" cy="65" r="2.5" fill="#3E2723" />
+                            <circle cx="132" cy="70" r="3" fill="#E65100" />
+                            <circle cx="125" cy="130" r="2.5" fill="#3E2723" />
+                            <circle cx="70" cy="125" r="3.5" fill="#E65100" />
+                            <circle cx="100" cy="52" r="2.5" fill="#3E2723" />
+                            <circle cx="62" cy="95" r="3" fill="#E65100" />
+                            <circle cx="138" cy="100" r="2.5" fill="#3E2723" />
+                            <circle cx="85" cy="142" r="3" fill="#3E2723" />
+                            <circle cx="115" cy="145" r="2.5" fill="#E65100" />
+                        `;
+                    } else if (flavor === 'cloud') {
+                        // 구름 아이스크림: Soft blue puffy cloud body with smile face
+                        svgStr += `
+                            <g filter="drop-shadow(0 4px 6px rgba(0,0,0,0.1))">
+                                <!-- Cloud path -->
+                                <path d="M 100 45 
+                                         C 125 45, 135 60, 135 75 
+                                         C 152 75, 155 95, 140 115 
+                                         C 145 135, 125 155, 100 150 
+                                         C 75 155, 55 135, 60 115 
+                                         C 45 95, 48 75, 65 75 
+                                         C 65 60, 75 45, 100 45 Z" fill="${color}" />
+                                
+                                <!-- Blushing cheeks -->
+                                <circle cx="78" cy="108" r="7" fill="#FF8A80" opacity="0.7" />
+                                <circle cx="122" cy="108" r="7" fill="#FF8A80" opacity="0.7" />
+                                
+                                <!-- Cute eyes -->
+                                <circle cx="85" cy="98" r="3" fill="#37474F" />
+                                <circle cx="115" cy="98" r="3" fill="#37474F" />
+                                <circle cx="83" cy="96" r="1" fill="#FFF" />
+                                <circle cx="113" cy="96" r="1" fill="#FFF" />
+                                
+                                <!-- Cute happy mouth -->
+                                <path d="M 96 106 Q 100 112 104 106" stroke="#37474F" stroke-width="2.5" fill="none" stroke-linecap="round" />
+                            </g>
+                        `;
+                    } else if (flavor === 'melonbar') {
+                        // 메론바: Rectangular round green bar with vertical shading and melon patterns
+                        svgStr += `
+                            <!-- Main Melon Body -->
+                            <rect x="60" y="45" width="80" height="115" rx="30" fill="${color}" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.15))" />
+                            
+                            <!-- Shading Layer -->
+                            <rect x="60" y="45" width="25" height="115" rx="15" fill="#FFF" opacity="0.25" />
+                            
+                            <!-- Green Stripes -->
+                            <path d="M 75 55 Q 100 65 125 55" stroke="#81C784" stroke-width="3" fill="none" stroke-linecap="round" />
+                            <path d="M 70 90 Q 100 100 130 90" stroke="#81C784" stroke-width="3" fill="none" stroke-linecap="round" />
+                            <path d="M 72 125 Q 100 135 128 125" stroke="#81C784" stroke-width="3" fill="none" stroke-linecap="round" />
+                        `;
+                    } else if (flavor === 'titipo') {
+                        // 띠띠뽀 아이스크림: Cute blue train engine design
+                        svgStr += `
+                            <g filter="drop-shadow(0 4px 6px rgba(0,0,0,0.15))">
+                                <!-- Train Main Blue Body -->
+                                <rect x="55" y="45" width="90" height="115" rx="20" fill="${color}" />
+                                
+                                <!-- Train Front Nose (Curved bottom highlight) -->
+                                <path d="M 55 120 Q 100 150 145 120 L 145 140 C 145 155, 125 160, 100 160 C 75 160, 55 155, 55 140 Z" fill="#0D47A1" />
+                                
+                                <!-- Train Windows -->
+                                <rect x="68" y="60" width="24" height="24" rx="4" fill="#E3F2FD" stroke="#0D47A1" stroke-width="2" />
+                                <rect x="108" y="60" width="24" height="24" rx="4" fill="#E3F2FD" stroke="#0D47A1" stroke-width="2" />
+                                
+                                <!-- Window reflections -->
+                                <line x1="72" y1="78" x2="84" y2="66" stroke="#FFF" stroke-width="2" stroke-linecap="round" />
+                                <line x1="112" y1="78" x2="124" y2="66" stroke="#FFF" stroke-width="2" stroke-linecap="round" />
+                                
+                                <!-- Yellow headlights -->
+                                <circle cx="75" cy="110" r="8" fill="#FFEB3B" stroke="#0D47A1" stroke-width="1.5" />
+                                <circle cx="125" cy="110" r="8" fill="#FFEB3B" stroke="#0D47A1" stroke-width="1.5" />
+                                <circle cx="73" cy="108" r="2" fill="#FFF" />
+                                <circle cx="123" cy="108" r="2" fill="#FFF" />
+                            </g>
+                        `;
+                    }
+                }
+            }
+
+            // Draw Topping Layers
+            const topScoopIndex = Math.min(scoops.length - 1, 2);
+            let topY = 48; // Default topping Y anchor coordinate
+            let topX = 100;
+
+            if (base === 'cup') {
+                if (topScoopIndex === 0) topY = 125;
+                if (topScoopIndex === 1) topY = 85;
+                if (topScoopIndex === 2) topY = 48;
+            } else if (base === 'bar') {
+                topY = 70; // Fit nicely over mid section of the popsicle
+            }
+
+            // Topping 1: Syrup
+            if (toppings.includes('syrup') && scoops.length > 0) {
+                if (base === 'cup') {
+                    svgStr += `
+                        <path d="M ${topX - 25} ${topY + 5} Q ${topX} ${topY - 32} ${topX + 25} ${topY + 5}" stroke="#4E342E" stroke-width="5" fill="none" stroke-linecap="round" />
+                        <path d="M ${topX - 10} ${topY - 12} Q ${topX - 5} ${topY + 15} ${topX} ${topY + 2}" stroke="#4E342E" stroke-width="4" fill="none" stroke-linecap="round" />
+                        <path d="M ${topX + 10} ${topY - 10} Q ${topX + 15} ${topY + 12} ${topX + 20} ${topY + 2}" stroke="#4E342E" stroke-width="4" fill="none" stroke-linecap="round" />
+                    `;
+                } else {
+                    // Chocolate syrup dripping across popsicle
+                    svgStr += `
+                        <path d="M 55 70 C 75 40, 125 40, 145 70" stroke="#4E342E" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.9" />
+                        <path d="M 75 60 L 75 90" stroke="#4E342E" stroke-width="5" fill="none" stroke-linecap="round" />
+                        <path d="M 125 60 L 125 95" stroke="#4E342E" stroke-width="5" fill="none" stroke-linecap="round" />
+                    `;
+                }
+            }
+
+            // Topping 2: Sprinkle
+            if (toppings.includes('sprinkle') && scoops.length > 0) {
+                const sprinkleCoords = [
+                    {dx: -15, dy: -15, rot: 30, color: '#FF1744'},
+                    {dx: 15, dy: -12, rot: -45, color: '#FFEA00'},
+                    {dx: -5, dy: -20, rot: 15, color: '#00E676'},
+                    {dx: 10, dy: -22, rot: 60, color: '#2979FF'},
+                    {dx: -20, dy: 5, rot: -10, color: '#FF9100'},
+                    {dx: 22, dy: 3, rot: 40, color: '#D500F9'}
+                ];
+                sprinkleCoords.forEach(sp => {
+                    svgStr += `
+                        <rect x="${topX + sp.dx}" y="${topY + sp.dy}" width="2.5" height="8" rx="1" fill="${sp.color}" transform="rotate(${sp.rot}, ${topX + sp.dx}, ${topY + sp.dy})" />
+                    `;
+                });
+            }
+
+            // Topping 3: Cookie
+            if (toppings.includes('cookie') && scoops.length > 0) {
+                svgStr += `
+                    <circle cx="${topX - 12}" cy="${topY - 8}" r="3" fill="#3E2723" />
+                    <circle cx="${topX + 15}" cy="${topY - 4}" r="2" fill="#3E2723" />
+                    <circle cx="${topX}" cy="${topY - 18}" r="2.5" fill="#3E2723" />
+                    <circle cx="${topX + 8}" cy="${topY - 15}" r="3.5" fill="#3E2723" />
+                    <circle cx="${topX - 22}" cy="${topY - 2}" r="2" fill="#3E2723" />
+                `;
+            }
+
+            // Topping 4: Cherry (On Top)
+            if (toppings.includes('cherry') && scoops.length > 0) {
+                const cherryY = topY - 22;
+                svgStr += `
+                    <path d="M ${topX} ${cherryY} Q ${topX + 18} ${cherryY - 25} ${topX + 24} ${cherryY - 12}" stroke="#5d4037" stroke-width="2" fill="none" stroke-linecap="round" />
+                    <circle cx="${topX}" cy="${cherryY}" r="12" fill="#d50000" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.2))" />
+                    <circle cx="${topX - 4}" cy="${cherryY - 4}" r="3" fill="#ffffff" opacity="0.6" />
+                `;
+            }
+
+            // Empty Placeholder
+            if (scoops.length === 0) {
+                svgStr += `
+                    <text x="100" y="100" font-family="'Jua'" font-size="50" fill="#cbd5e1" text-anchor="middle">?</text>
+                    <text x="100" y="125" font-family="'Jua'" font-size="12" fill="#94a3b8" text-anchor="middle">맛을 선택하세요!</text>
+                `;
+            }
+
+            svgStr += `</svg>`;
+            return svgStr;
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Toast alert and generic state managers
+         **************************************************************/
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toastContainer");
+            const toast = document.createElement("div");
+            toast.className = `px-5 py-3 rounded-2xl shadow-xl border-2 flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0 font-sans font-bold text-sm ${
+                type === "success" 
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-800" 
+                    : type === "info"
+                    ? "bg-sky-50 border-sky-300 text-sky-800"
+                    : "bg-pink-50 border-pink-300 text-pink-800"
+            }`;
+            toast.innerHTML = `<span>${type === 'success' ? '✨' : '🍦'}</span><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove("translate-y-2", "opacity-0");
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add("translate-y-2", "opacity-0");
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        function switchRole(role) {
+            state.role = role;
+            initAudio();
+
+            const customerBtn = document.getElementById("customerTab");
+            const ownerBtn = document.getElementById("ownerTab");
+            const customerView = document.getElementById("customerView");
+            const ownerView = document.getElementById("ownerView");
+
+            if (role === 'customer') {
+                customerBtn.className = "active-tab py-2.5 rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2";
+                ownerBtn.className = "text-pink-600 hover:bg-white/50 py-2.5 rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2 relative";
+                customerView.style.display = 'block';
+                ownerView.style.display = 'none';
+                
+                playScoopSound();
+                renderCustomerControls();
+                updateCustomerTracker();
+            } else {
+                ownerBtn.className = "active-tab py-2.5 rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2 relative";
+                customerBtn.className = "text-pink-600 hover:bg-white/50 py-2.5 rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2";
+                customerView.style.display = 'none';
+                ownerView.style.display = 'block';
+                
+                playSuccessSound();
+                renderOwnerKitchen();
+            }
+        }
+
+        function updateCoins(amount) {
+            state.coins += amount;
+            localStorage.setItem('icecream_play_coins', state.coins);
+            document.getElementById("coinCount").innerText = state.coins;
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Managing client control selections (Cup/Bar flavors switching)
+         **************************************************************/
+        function setBase(baseType) {
+            state.customer.base = baseType;
+            
+            // Re-allocate default flavors based on dynamic base
+            if (baseType === 'cup') {
+                state.customer.scoops = ['strawberry']; // Set default scoop
+            } else {
+                state.customer.scoops = ['pigbar']; // Set default bar type
+            }
+            
+            playScoopSound();
+            renderCustomerControls();
+        }
+
+        function addScoop(flavor) {
+            if (flavor === 'kids_draw') {
+                // Open Kid Drawing Tool Board
+                openDrawingModal();
+                return;
+            }
+
+            // 핑크컵과 달콤바 모두 맛을 한 가지만 선택할 수 있도록 수정합니다.
+            state.customer.scoops = [flavor];
+            playScoopSound();
+            renderCustomerControls();
+        }
+
+        function clearScoops() {
+            state.customer.scoops = [];
+            if (state.customer.base === 'bar') {
+                state.customer.customDrawingData = null; // Reset Custom Artwork drawing
+            }
+            playScoopSound();
+            renderCustomerControls();
+        }
+
+        function toggleTopping(topping) {
+            const index = state.customer.toppings.indexOf(topping);
+            if (index > -1) {
+                state.customer.toppings.splice(index, 1);
+            } else {
+                state.customer.toppings.push(topping);
+                playSprinkleSound();
+            }
+            renderCustomerControls();
+        }
+
+        // Dynamically populates and renders customer controller steps & options
+        function renderCustomerControls() {
+            const isBar = state.customer.base === 'bar';
+            
+            // Dynamic Title Adjustment for 2단계 (컵 역시 택 1로 가이드를 변경합니다)
+            const stepTitle = document.getElementById("flavorStepTitle");
+            stepTitle.innerText = isBar 
+                ? "2단계: 맛있는 막대바 고르기 (택 1)" 
+                : "2단계: 아이스크림 스쿱 고르기 (택 1)";
+
+            // Dynamic Option list rendering
+            const buttonsGrid = document.getElementById("flavorButtonsGrid");
+            buttonsGrid.innerHTML = ''; // Reset
+
+            const targetFlavors = FLAVORS_BY_BASE[state.customer.base];
+            targetFlavors.forEach(flavor => {
+                const isSelected = state.customer.scoops.includes(flavor.id);
+                let activeStyle = isSelected 
+                    ? 'ring-4 ring-pink-500 scale-105 border-pink-400' 
+                    : 'border-slate-100 hover:border-pink-200';
+
+                let itemText = flavor.name;
+                if (flavor.id === 'kids_draw' && state.customer.customDrawingData) {
+                    itemText = "🎨 나의 그림 바! (수정)";
+                }
+
+                buttonsGrid.innerHTML += `
+                    <button onclick="addScoop('${flavor.id}')" class="flavor-btn border p-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition bg-white/80 shadow-sm ${activeStyle}">
+                        <span class="text-lg">${flavor.id === 'kids_draw' ? '🖼️' : '🍦'}</span>
+                        <span class="text-xs font-bold text-slate-800">${itemText}</span>
+                    </button>
+                `;
+            });
+
+            // Refresh Live SVG Preview Panel
+            const previewContainer = document.getElementById("iceCreamPreview");
+            previewContainer.innerHTML = makeIceCreamSVG(
+                state.customer.base,
+                state.customer.scoops,
+                state.customer.toppings,
+                state.customer.customDrawingData
+            );
+
+            // Highlight Container Buttons
+            document.querySelectorAll(".base-btn").forEach(btn => {
+                btn.classList.remove("border-pink-400", "bg-pink-50/50");
+                btn.classList.add("border-slate-200", "bg-slate-50");
+            });
+            const activeBaseBtn = document.getElementById(`base-${state.customer.base}`);
+            if (activeBaseBtn) {
+                activeBaseBtn.classList.add("border-pink-400", "bg-pink-50/50");
+                activeBaseBtn.classList.remove("border-slate-200", "bg-slate-50");
+            }
+
+            // Highlight Active Toppings
+            document.querySelectorAll(".topping-btn").forEach(btn => {
+                btn.classList.remove("bg-pink-100", "border-pink-400");
+            });
+            state.customer.toppings.forEach(top => {
+                const btn = document.getElementById(`top-${top}`);
+                if (btn) btn.classList.add("bg-pink-100", "border-pink-400");
+            });
+
+            // Summary Info Display Updates
+            const baseTxt = BASE_NAMES[state.customer.base];
+            const flavorsTxt = state.customer.scoops.map(f => FLAVOR_NAMES[f]).join(" + ");
+            const toppingsTxt = state.customer.toppings.map(t => TOPPING_NAMES[t]).join(", ");
+            
+            document.getElementById("summaryText").innerText = `${baseTxt}에 담아 만든 디저트`;
+            document.getElementById("summaryFlavors").innerText = `${flavorsTxt || '맛 미지정'} ${toppingsTxt ? ' (' + toppingsTxt + ' 추가)' : ''}`;
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Integrating Canvas drawing & Touch/Mouse Event Listeners
+         **************************************************************/
+        // Canvas Variables
+        let kidsCanvas, kidsCtx;
+        let drawingState = {
+            isDrawing: false,
+            brushColor: '#FF1744',
+            brushSize: 10
+        };
+
+        function openDrawingModal() {
+            initAudio();
+            document.getElementById("drawingModal").classList.remove("hidden");
+            
+            // Lazy Canvas Initialize
+            if (!kidsCanvas) {
+                kidsCanvas = document.getElementById("kidsCanvas");
+                kidsCtx = kidsCanvas.getContext("2d", { willReadFrequently: true });
+                setupDrawingEvents();
+            }
+            
+            // Set canvas background to semi-transparent white/alpha if empty
+            if (!state.customer.customDrawingData) {
+                clearKidsCanvas();
+            }
+        }
+
+        function closeDrawingModal() {
+            document.getElementById("drawingModal").classList.add("hidden");
+        }
+
+        function setupDrawingEvents() {
+            // Helper coordinates
+            const getPos = (e) => {
+                const rect = kidsCanvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            };
+
+            const startDrawing = (e) => {
+                drawingState.isDrawing = true;
+                const pos = getPos(e);
+                kidsCtx.beginPath();
+                kidsCtx.moveTo(pos.x, pos.y);
+                kidsCtx.lineWidth = drawingState.brushSize;
+                kidsCtx.lineCap = 'round';
+                kidsCtx.lineJoin = 'round';
+                kidsCtx.strokeStyle = drawingState.brushColor;
+                e.preventDefault();
+            };
+
+            const draw = (e) => {
+                if (!drawingState.isDrawing) return;
+                const pos = getPos(e);
+                kidsCtx.lineTo(pos.x, pos.y);
+                kidsCtx.stroke();
+                e.preventDefault();
+            };
+
+            const stopDrawing = () => {
+                drawingState.isDrawing = false;
+                kidsCtx.closePath();
+            };
+
+            // Mouse Events
+            kidsCanvas.addEventListener('mousedown', startDrawing);
+            kidsCanvas.addEventListener('mousemove', draw);
+            kidsCanvas.addEventListener('mouseup', stopDrawing);
+            kidsCanvas.addEventListener('mouseleave', stopDrawing);
+
+            // Touch Events (Perfect tablet compatibility)
+            kidsCanvas.addEventListener('touchstart', startDrawing);
+            kidsCanvas.addEventListener('touchmove', draw);
+            kidsCanvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function changeBrushColor(color) {
+            drawingState.brushColor = color;
+            playScoopSound();
+            
+            // Highlight selected color circle
+            document.querySelectorAll(".color-dot").forEach(btn => {
+                btn.classList.remove("ring-pink-400", "scale-110");
+            });
+            event.target.classList.add("ring-pink-400", "scale-110");
+        }
+
+        function clearKidsCanvas() {
+            if (!kidsCtx) return;
+            kidsCtx.clearRect(0, 0, kidsCanvas.width, kidsCanvas.height);
+            // Draw a cute light pink dotted bounding box inside canvas
+            kidsCtx.fillStyle = "#ffffff";
+            kidsCtx.fillRect(0, 0, kidsCanvas.width, kidsCanvas.height);
+            playScoopSound();
+        }
+
+        function triggerImageUpload() {
+            document.getElementById("imageUploader").click();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    kidsCtx.clearRect(0, 0, kidsCanvas.width, kidsCanvas.height);
+                    // Draw image scaled to fit canvas proportionally
+                    const scale = Math.min(kidsCanvas.width / img.width, kidsCanvas.height / img.height);
+                    const x = (kidsCanvas.width / 2) - (img.width / 2) * scale;
+                    const y = (kidsCanvas.height / 2) - (img.height / 2) * scale;
+                    kidsCtx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                    playSuccessSound();
+                    showToast("📸 사진 업로드 성공! 막대 아이스크림 옷을 입혔어요.", "success");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function saveKidsDrawing() {
+            const dataUrl = kidsCanvas.toDataURL("image/png");
+            state.customer.customDrawingData = dataUrl;
+            state.customer.scoops = ['kids_draw'];
+            
+            closeDrawingModal();
+            playSuccessSound();
+            showToast("🎨 나만의 예술작품 아이스크림바 제작 완료!", "success");
+            renderCustomerControls();
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Managing submission and customer delivery trackers
+         **************************************************************/
+        function submitOrder() {
+            if (state.customer.scoops.length === 0) {
+                showToast("아이스크림 맛을 최소 1개는 골라주세요!", "warning");
+                return;
+            }
+
+            const custNameInput = document.getElementById("custName");
+            const custAliasInput = document.getElementById("custAlias");
+
+            const address = custNameInput.value.trim() || "거실 소파";
+            const nickname = custAliasInput.value.trim() || "귀여운 다람쥐";
+
+            const newOrder = {
+                id: 'ORD-' + Date.now(),
+                customerName: nickname,
+                address: address,
+                base: state.customer.base,
+                scoops: [...state.customer.scoops],
+                toppings: [...state.customer.toppings],
+                customDrawingData: state.customer.customDrawingData, // Forward image data to kitchen!
+                status: 'ordered',
+                timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            state.orders.push(newOrder);
+            playBellSound();
+            showToast("🍦 무지개 아이스크림 가게로 주문이 들어갔습니다!", "success");
+
+            // Reset customer builder setup
+            if (state.customer.base === 'cup') {
+                state.customer.scoops = ['strawberry'];
+            } else {
+                state.customer.scoops = ['pigbar'];
+                state.customer.customDrawingData = null;
+            }
+            state.customer.toppings = ['cherry'];
+            
+            renderCustomerControls();
+            updateCustomerTracker();
+            updateOwnerOrderBadge();
+        }
+
+        function updateCustomerTracker() {
+            const list = document.getElementById("trackingList");
+            if (state.orders.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 font-sans">
+                        <span class="text-4xl block mb-2">🍽️</span>
+                        아직 주문한 아이스크림이 없습니다.<br>위에서 나만의 아이스크림을 만들어 주문해보세요!
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="space-y-4">';
+            state.orders.forEach(order => {
+                let statusBadge = '';
+                let progressPercent = '0%';
+                let statusDesc = '';
+
+                switch(order.status) {
+                    case 'ordered':
+                        statusBadge = '<span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold border border-amber-300">⏳ 사장님 접수 대기</span>';
+                        progressPercent = '10%';
+                        statusDesc = '가게에서 주문 확인 중이에요. 사장님 방에 노크해볼까요?';
+                        break;
+                    case 'preparing':
+                        statusBadge = '<span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-bold border border-indigo-300">🍳 제작하는 중</span>';
+                        progressPercent = '50%';
+                        statusDesc = '사장님이 주방에서 주문을 정성껏 조립해서 만들고 계십니다!';
+                        break;
+                    case 'delivering':
+                        statusBadge = '<span class="bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full text-xs font-bold border border-cyan-300 animate-pulse">🛵 배달 출발!!</span>';
+                        progressPercent = '80%';
+                        statusDesc = `오토바이가 출발했어요! 목적지 [${order.address}] (으)로 달려갑니다!`;
+                        break;
+                    case 'delivered':
+                        statusBadge = '<span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold border border-emerald-300">🎉 맛있게 드세요!</span>';
+                        progressPercent = '100%';
+                        statusDesc = '배달이 무사히 완료되었습니다! 맛있게 냠냠 먹으며 놀아요!';
+                        break;
+                }
+
+                const toppingsStr = order.toppings.map(t => TOPPING_NAMES[t]).join(", ");
+                const flavorsStr = order.scoops.map(f => FLAVOR_NAMES[f]).join(" + ");
+
+                html += `
+                    <div class="border-2 border-slate-100 rounded-3xl p-5 bg-white shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 font-sans relative overflow-hidden">
+                        
+                        <!-- Order Visual Detail -->
+                        <div class="flex items-center gap-4 w-full md:w-auto">
+                            <div class="w-16 h-16 flex-shrink-0 bg-pink-50 rounded-2xl flex items-center justify-center p-1 border border-pink-100">
+                                ${makeIceCreamSVG(order.base, order.scoops, order.toppings, order.customDrawingData)}
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-slate-800 text-base">${BASE_NAMES[order.base]} (${flavorsStr})</span>
+                                    ${statusBadge}
+                                </div>
+                                <div class="text-xs text-slate-500 mt-1">
+                                    <span>배송지: <strong>${order.address}</strong></span> | <span>수령인: <strong>${order.customerName}</strong></span>
+                                </div>
+                                ${toppingsStr ? `<div class="text-[11px] text-pink-500 mt-0.5 font-bold">추가 토핑: ${toppingsStr}</div>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Mini Delivery Tracker Interactive Scooter -->
+                        <div class="w-full md:w-64 space-y-2 flex-shrink-0">
+                            <div class="relative w-full h-8 bg-slate-100 rounded-full border border-slate-200 overflow-hidden px-2 flex items-center">
+                                <div class="absolute left-0 top-0 h-full bg-pink-100 transition-all duration-1000" style="width: ${progressPercent};"></div>
+                                <div class="absolute transition-all duration-1000" style="left: calc(${progressPercent} - 24px); left: max(0px, calc(${progressPercent} - 24px));">
+                                    <span class="text-xl">🛵</span>
+                                </div>
+                                <div class="absolute right-3">
+                                    <span class="text-xs">🏠</span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-slate-500 text-center font-bold">
+                                ${statusDesc}
+                            </div>
+                        </div>
+
+                        <!-- Customer Delivery Confirm Action Button -->
+                        ${order.status === 'delivered' ? `
+                            <button onclick="confirmReceived('${order.id}')" class="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold font-sans text-xs transition active:scale-95 shadow-md flex items-center justify-center gap-1.5">
+                                <i class="fas fa-check-circle"></i> 잘 받았습니다! (놀이 마침)
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            list.innerHTML = html;
+        }
+
+        function confirmReceived(orderId) {
+            const index = state.orders.findIndex(o => o.id === orderId);
+            if (index > -1) {
+                state.orders.splice(index, 1);
+                
+                playSuccessSound();
+                updateCoins(50);
+                showToast("🍦 달콤한 아이스크림을 완벽히 배달 받았습니다! +50코인!", "success");
+                
+                updateCustomerTracker();
+                updateOwnerOrderBadge();
+                renderOwnerKitchen();
+            }
+        }
+
+        /**************************************************************
+         * OWNER MODE: KITCHEN ASSEMBLY ENGINE
+         **************************************************************/
+        function updateOwnerOrderBadge() {
+            const pending = state.orders.filter(o => o.status === 'ordered').length;
+            const badge = document.getElementById("orderBadge");
+            if (pending > 0) {
+                badge.innerText = pending;
+                badge.classList.remove("hidden");
+            } else {
+                badge.classList.add("hidden");
+            }
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Rendering and managing chef's workspace layout based on dynamic recipe
+         **************************************************************/
+        function renderOwnerKitchen() {
+            const pendingOrders = state.orders.filter(o => o.status === 'ordered' || o.status === 'preparing');
+            document.getElementById("orderQueueCount").innerText = `${pendingOrders.length}개`;
+
+            const queueContainer = document.getElementById("orderQueue");
+
+            if (pendingOrders.length === 0) {
+                queueContainer.innerHTML = `
+                    <div class="text-center py-12 text-slate-400">
+                        <span class="text-4xl block mb-2">💤</span>
+                        대기중인 주문이 없습니다.<br>손님 모드에서 먼저 주문해 보세요!
+                    </div>
+                `;
+                document.getElementById("noActiveAssembly").style.display = 'flex';
+                document.getElementById("activeAssemblyArea").classList.add("hidden");
+                return;
+            }
+
+            let html = '';
+            pendingOrders.forEach(order => {
+                const flavorsStr = order.scoops.map(f => FLAVOR_NAMES[f]).join(", ");
+                const isActive = state.chef.activeOrderId === order.id;
+
+                html += `
+                    <div class="p-3 border-2 rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer ${
+                        isActive 
+                            ? "bg-indigo-50 border-indigo-400 shadow-md ring-2 ring-indigo-300" 
+                            : "bg-slate-50 border-slate-200 hover:border-slate-300"
+                    }" onclick="selectOrderForChef('${order.id}')">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">${order.base === 'cup' ? '🍧' : '🍭'}</span>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">
+                                    [${order.customerName}] 님의 주문
+                                </div>
+                                <div class="text-xs text-slate-500 mt-0.5 font-sans font-bold">
+                                    ${BASE_NAMES[order.base]} | ${flavorsStr}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 font-sans block">${order.timestamp}</span>
+                            <span class="text-xs font-bold ${order.status === 'preparing' ? 'text-indigo-600' : 'text-amber-600'}">
+                                ${order.status === 'preparing' ? '제작 중' : '접수 대기'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            queueContainer.innerHTML = html;
+
+            if (state.chef.activeOrderId) {
+                document.getElementById("noActiveAssembly").style.display = 'none';
+                document.getElementById("activeAssemblyArea").classList.remove("hidden");
+                renderChefWorkspace();
+            } else {
+                document.getElementById("noActiveAssembly").style.display = 'flex';
+                document.getElementById("activeAssemblyArea").classList.add("hidden");
+            }
+        }
+
+        function selectOrderForChef(orderId) {
+            const targetOrder = state.orders.find(o => o.id === orderId);
+            if (!targetOrder) return;
+
+            state.chef.activeOrderId = orderId;
+            
+            if (targetOrder.status === 'ordered') {
+                targetOrder.status = 'preparing';
+                playScoopSound();
+                showToast("🍳 사장님 제작 수락! 레시피를 보면서 알맞게 조립해보세요.", "info");
+            }
+
+            // Force empty workspace start for simulation feel
+            state.chef.base = null;
+            state.chef.scoops = [];
+            state.chef.toppings = [];
+
+            updateCustomerTracker();
+            renderOwnerKitchen();
+        }
+
+        function abandonChefOrder() {
+            const targetOrder = state.orders.find(o => o.id === state.chef.activeOrderId);
+            if (targetOrder && targetOrder.status === 'preparing') {
+                targetOrder.status = 'ordered';
+            }
+            state.chef.activeOrderId = null;
+            state.chef.base = null;
+            state.chef.scoops = [];
+            state.chef.toppings = [];
+
+            updateCustomerTracker();
+            renderOwnerKitchen();
+        }
+
+        function chefSetBase(baseType) {
+            if (!state.chef.activeOrderId) return;
+            state.chef.base = baseType;
+            state.chef.scoops = []; // Reset scoop options on container change
+            playScoopSound();
+            renderChefWorkspace();
+        }
+
+        function chefAddScoop(flavor) {
+            if (!state.chef.activeOrderId) return;
+            
+            // 주방(사장님) 조립기에서도 핑크컵과 달콤바 모두 단일 스쿱/바 형태로 조립하도록 설정합니다.
+            state.chef.scoops = [flavor];
+            playScoopSound();
+            renderChefWorkspace();
+        }
+
+        function chefClearScoops() {
+            state.chef.scoops = [];
+            playScoopSound();
+            renderChefWorkspace();
+        }
+
+        function chefToggleTopping(topping) {
+            if (!state.chef.activeOrderId) return;
+            const idx = state.chef.toppings.indexOf(topping);
+            if (idx > -1) {
+                state.chef.toppings.splice(idx, 1);
+            } else {
+                state.chef.toppings.push(topping);
+                playSprinkleSound();
+            }
+            renderChefWorkspace();
+        }
+
+        function arraysEqual(a, b) {
+            if (a.length !== b.length) return false;
+            const sortedA = [...a].sort();
+            const bgSortedB = [...b].sort();
+            for (let i = 0; i < sortedA.length; i++) {
+                if (sortedA[i] !== bgSortedB[i]) return false;
+            }
+            return true;
+        }
+
+        function arraysEqualExactOrder(a, b) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== bgSortedB[i]) return false;
+                // Treat kids_draw identically in matching strings
+            }
+            return true;
+        }
+
+        /**************************************************************
+         * STREAMING_CHUNK: Compiling and updating the chef workspace UI elements and validation loops
+         **************************************************************/
+        function renderChefWorkspace() {
+            const targetOrder = state.orders.find(o => o.id === state.chef.activeOrderId);
+            if (!targetOrder) return;
+
+            const isCustomDrawingOrder = targetOrder.scoops.includes('kids_draw');
+
+            // Target Recipe Setup
+            const targetBaseTxt = BASE_NAMES[targetOrder.base];
+            let targetFlavorsTxt = targetOrder.scoops.map(f => FLAVOR_NAMES[f]).join(" -> ");
+            const targetToppingsTxt = targetOrder.toppings.map(t => TOPPING_NAMES[t]).join(", ") || "토핑 없음";
+
+            document.getElementById("recipeTargetDesc").innerText = `[${targetOrder.customerName}] 님의 주문 레시피`;
+            
+            if (isCustomDrawingOrder) {
+                document.getElementById("recipeTargetDetails").innerHTML = `
+                    <div class="text-pink-600 font-bold text-xs bg-pink-50 p-2 rounded-lg border border-pink-200 mt-1">
+                        🎨 세상에 하나뿐인 꼬마 작가님의 커스텀 막대기 아이스크림 주문입니다! <br>
+                        주방에서는 <strong class="underline">"달콤바" 그릇을 고르고 "🎨 내그림"을 선택한 뒤, 토핑 [${targetToppingsTxt}]</strong>을 올리면 완벽 조립 완료!
+                    </div>
+                `;
+            } else {
+                document.getElementById("recipeTargetDetails").innerText = `그릇: ${targetBaseTxt} | 구성 맛: ${targetFlavorsTxt} | 토핑: ${targetToppingsTxt}`;
+            }
+
+            // Render Chef Workspace Interactive Preview SVG
+            document.getElementById("ownerAssemblyPreview").innerHTML = makeIceCreamSVG(
+                state.chef.base,
+                state.chef.scoops,
+                state.chef.toppings,
+                targetOrder.customDrawingData // Pass child's picture context into preview!
+            );
+
+            // Highlight Chef Container Buttons
+            document.querySelectorAll(".chef-base-btn").forEach(btn => {
+                btn.classList.remove("bg-indigo-600", "text-white", "border-indigo-600");
+                btn.classList.add("bg-white", "text-slate-800");
+            });
+            if (state.chef.base) {
+                const matchBtn = Array.from(document.querySelectorAll(".chef-base-btn")).find(el => el.textContent.includes(BASE_NAMES[state.chef.base]));
+                if (matchBtn) {
+                    matchBtn.classList.add("bg-indigo-600", "text-white", "border-indigo-600");
+                    matchBtn.classList.remove("bg-white", "text-slate-800");
+                }
+            }
+
+            // Dynamically Render Chef Taste/Scoop Panel Buttons based on Chef's selected base container
+            const chefFlavorGrid = document.getElementById("chefFlavorGrid");
+            const chefFlavorTitle = document.getElementById("chefFlavorTitle");
+            chefFlavorGrid.innerHTML = ''; // reset
+
+            if (state.chef.base) {
+                chefFlavorTitle.innerText = state.chef.base === 'bar' 
+                    ? "2. 맛있는 막대바 고르기 (택 1)" 
+                    : "2. 아이스크림 스쿱 고르기 (택 1)";
+
+                const activeFlavorsList = FLAVORS_BY_BASE[state.chef.base];
+                activeFlavorsList.forEach(flavor => {
+                    const isSelected = state.chef.scoops.includes(flavor.id);
+                    const selectedClass = isSelected ? 'ring-2 ring-indigo-600 scale-105 border-indigo-600' : 'border-slate-200';
+                    
+                    let itemText = flavor.name;
+                    if (flavor.id === 'kids_draw') {
+                        itemText = isCustomDrawingOrder ? "🎨 손님 그림바" : "🎨 그림 (손님전용)";
+                    }
+
+                    // Disable kids draw button in kitchen IF this wasn't a kids draw order, to avoid confusion
+                    const isDisabled = flavor.id === 'kids_draw' && !isCustomDrawingOrder;
+                    const opacityClass = isDisabled ? 'opacity-30 cursor-not-allowed' : '';
+
+                    chefFlavorGrid.innerHTML += `
+                        <button ${isDisabled ? 'disabled' : ''} onclick="chefAddScoop('${flavor.id}')" class="border py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition bg-white ${selectedClass} ${opacityClass}">
+                            ${flavor.id === 'kids_draw' ? '🖼️' : flavor.emoji || '🍦'} ${itemText}
+                        </button>
+                    `;
+                });
+            } else {
+                chefFlavorTitle.innerText = "2. 맛 선택하기 (1단계를 먼저 선택하세요)";
+                chefFlavorGrid.innerHTML = `
+                    <div class="col-span-2 text-center text-[10px] text-slate-400 py-3">그릇을 선택하시면 전용 맛들이 여기에 나타납니다!</div>
+                `;
+            }
+
+            // Highlight Active Toppings in Kitchen
+            document.querySelectorAll(".chef-top-btn").forEach(btn => {
+                btn.classList.remove("bg-indigo-100", "border-indigo-400");
+            });
+            state.chef.toppings.forEach(top => {
+                const btn = document.getElementById(`chef-top-${top}`);
+                if (btn) btn.classList.add("bg-indigo-100", "border-indigo-400");
+            });
+
+            // Match Validation Process
+            const statusLabel = document.getElementById("ownerAssemblyStatus");
+            const shipBtn = document.getElementById("shipOrderBtn");
+
+            const baseMatches = state.chef.base === targetOrder.base;
+            const scoopsMatch = state.chef.scoops.length === targetOrder.scoops.length && 
+                               state.chef.scoops.every((val, index) => val === targetOrder.scoops[index]);
+            const toppingsMatch = arraysEqual(state.chef.toppings, targetOrder.toppings);
+
+            if (baseMatches && scoopsMatch && toppingsMatch) {
+                statusLabel.innerHTML = `<span class="text-emerald-500 font-bold">✨ 완벽해요! 주문서 레시피와 일치합니다!</span>`;
+                shipBtn.className = "flex-grow bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-300 transform active:scale-95 flex items-center justify-center gap-2 text-base cursor-pointer";
+                shipBtn.innerHTML = `<span>🛵</span> 포장 완료! 배달 출발하기!!`;
+                shipBtn.disabled = false;
+            } else {
+                let errorHint = "조립 중: ";
+                if (!baseMatches) errorHint += "그릇 종류가 일치하지 않습니다. ";
+                else if (!scoopsMatch) {
+                    errorHint += isCustomDrawingOrder ? "막대바로 '🎨 손님 그림바'를 올려주세요. " : "주문서의 맛 구성과 순서를 맞춰주세요. ";
+                }
+                else if (!toppingsMatch) errorHint += "주문한 토핑들을 알맞게 올려주세요. ";
+
+                statusLabel.innerHTML = `<span class="text-red-400 font-bold">${errorHint}</span>`;
+                shipBtn.className = "flex-grow bg-slate-200 text-slate-400 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-base cursor-not-allowed";
+                shipBtn.innerHTML = `<span>📦</span> 레시피가 일치하지 않습니다`;
+                shipBtn.disabled = true;
+            }
+        }
+
+        // SHIP ORDER TO DESTINATION
+        function shipActiveOrder() {
+            const targetOrder = state.orders.find(o => o.id === state.chef.activeOrderId);
+            if (!targetOrder) return;
+
+            playEngineSound();
+
+            targetOrder.status = 'delivering';
+            showToast(`🛵 [${targetOrder.customerName}] 님 배송지로 오토바이 전력 질주 출발!`, "info");
+
+            const deliveredOrderId = state.chef.activeOrderId;
+
+            // Reset workspace details
+            state.chef.activeOrderId = null;
+            state.chef.base = null;
+            state.chef.scoops = [];
+            state.chef.toppings = [];
+
+            updateCustomerTracker();
+            updateOwnerOrderBadge();
+            renderOwnerKitchen();
+
+            // Travel simulation delay
+            setTimeout(() => {
+                const dOrder = state.orders.find(o => o.id === deliveredOrderId);
+                if (dOrder) {
+                    dOrder.status = 'delivered';
+                    playBellSound();
+                    showToast(`🏠 오토바이가 [${dOrder.address}]에 도착해 배달을 완료했어요!`, "success");
+                    updateCustomerTracker();
+                    renderOwnerKitchen();
+                }
+            }, 4000);
+        }
+
+        /**************************************************************
+         * INITIAL LOADING CONTROL
+         **************************************************************/
+        window.onload = function() {
+            renderCustomerControls();
+            updateCustomerTracker();
+            updateOwnerOrderBadge();
+            
+            setTimeout(() => {
+                showToast("🍦 무지개 아이스크림 가게 배달 놀이 앱에 오신것을 환영합니다! 🎉", "success");
+            }, 500);
+        };
+    </script>
+</body>
+</html>
